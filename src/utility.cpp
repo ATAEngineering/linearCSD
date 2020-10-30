@@ -1,35 +1,34 @@
 // Copyright (C) 2020, ATA Engineering, Inc.
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
 // License as published by the Free Software Foundation; either
 // version 3 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // Lesser General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-#include <string>
-#include <iostream>
-#include <vector>
-#include <numeric>
-#include <filesystem>
-#include <system_error>
-#include "wetted_surface_types.h"
 #include "utility.hpp"
+#include <filesystem>
+#include <iostream>
+#include <numeric>
+#include <string>
+#include <system_error>
+#include <vector>
 #include "inputs.hpp"
-#include "vec3.hpp"
 #include "mpi.h"
+#include "vec3.hpp"
+#include "wetted_surface_types.h"
 
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::endl;
-
 
 // -------------------------------------------------------------------------
 // function definitions
@@ -37,9 +36,8 @@ void GetForceData(const int &inc, const std::string &chemCase,
                   const double &fsf, wetted_surface &cfd) {
   constexpr auto width = 7;
   const auto sinc = std::to_string(inc);
-  const auto forceFilePath = chemCase + "_" +
-                             std::string(width - sinc.length(), '0') + sinc +
-                             ".dat";
+  const auto forceFilePath =
+      chemCase + "_" + std::string(width - sinc.length(), '0') + sinc + ".dat";
   // open force file
   cout << "Reading force history file " << forceFilePath << endl;
   std::ifstream inFile(forceFilePath, std::ios::in);
@@ -149,8 +147,8 @@ std::string GetFileName(const std::string &rootName, const int &ii,
   constexpr auto width = 7;
   auto eid = std::to_string(ii + 1);
   const auto type = mapNodes ? "_node_" : "_elem_";
-  auto fileName = rootName + type + std::string(width - eid.length(), '0') +
-                  eid + ".csv";
+  auto fileName =
+      rootName + type + std::string(width - eid.length(), '0') + eid + ".csv";
   return fileName;
 }
 
@@ -288,8 +286,6 @@ void PrintStatsNodes(const wetted_surface &fem, const wetted_surface &cfd,
        << "%" << endl;
 }
 
-
-
 vec3 SumForces(const wetted_surface &surf) {
   vec3 sum(0, 0, 0);
   for (auto ii = 0U; ii < surf.force.size(); ++ii) {
@@ -353,7 +349,8 @@ void BroadcastString(std::string &str) {
             MPI_COMM_WORLD);  // broadcast string as char
 
   // create new string and assign to old string
-  std::string newStr(buf.get(), strSize - 1);  // -1 to not include c_str end character
+  // -1 to not include c_str end character
+  std::string newStr(buf.get(), strSize - 1);
   str = newStr;
 }
 

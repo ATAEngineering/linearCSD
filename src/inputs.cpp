@@ -1,41 +1,41 @@
 // Copyright (C) 2020, ATA Engineering, Inc.
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
 // License as published by the Free Software Foundation; either
 // version 3 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // Lesser General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-#include <utility>
+#include "inputs.hpp"
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <map>
 #include <set>
-#include <vector>
-#include <fstream>
-#include <iostream>
 #include <string>
-#include <iomanip>
-#include <cmath>
+#include <utility>
+#include <vector>
+#include "fsimat_petsc.h"
 #include "linearCSD.h"
 #include "mappedCoupling.h"
 #include "plaintext_output.h"
-#include "fsimat_petsc.h"
-#include "inputs.hpp"
 
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::endl;
 
 // -------------------------------------------------------------------------
 // constructor
-inputs::inputs(const std::string &inFile, const std::string &resDir, 
+inputs::inputs(const std::string &inFile, const std::string &resDir,
                const int &rank) {
   if (rank == 0) {
     cout << "Parsing input file " << inFile << "..." << endl;
@@ -44,7 +44,8 @@ inputs::inputs(const std::string &inFile, const std::string &resDir,
   readRestart_ = resDir;
 
   if (this->IsRestart()) {
-    this->ReadTimeRestartFile(this->ReadRestartDirPath() + "linearFSItime_restart");
+    this->ReadTimeRestartFile(this->ReadRestartDirPath() +
+                              "linearFSItime_restart");
   }
 
   // set any variables w/o inputs here
@@ -53,13 +54,13 @@ inputs::inputs(const std::string &inFile, const std::string &resDir,
   // coupOpts_.map_data[0].type = fsi::MAP_FEM_DISP;
   coupOpts_.map_data[0].name = "WS_FORCE";
   coupOpts_.map_data[0].type = fsi::MAP_CFD_FORCE;
-  //coupOpts_.outputOP2files = true;
+  // coupOpts_.outputOP2files = true;
   coupOpts_.map_options.splittingAlgorithm = SPLIT_EAR;
 
   std::ifstream in(inFile, std::ios::in);
   if (in.fail()) {
-    cerr << "ERROR: Error in inputs::inputs(). Input file '"
-	 << inFile << "' did not open correctly!" << endl;
+    cerr << "ERROR: Error in inputs::inputs(). Input file '" << inFile
+         << "' did not open correctly!" << endl;
     exit(EXIT_FAILURE);
   }
 
@@ -74,19 +75,19 @@ inputs::inputs(const std::string &inFile, const std::string &resDir,
     // determine if we are inside {}
     if (line.find("{") != std::string::npos) {
       if (openBraces) {
-	cerr << "ERROR: found second '{' in input file" << endl;
+        cerr << "ERROR: found second '{' in input file" << endl;
         exit(EXIT_FAILURE);
       }
       openBraces = true;
     }
     if (line.find("}") != std::string::npos) {
       if (closeBraces) {
-	cerr << "ERROR: found second '}' in input file" << endl;
+        cerr << "ERROR: found second '}' in input file" << endl;
         exit(EXIT_FAILURE);
       }
       closeBraces = true;
     }
-    insideBraces = openBraces && !closeBraces && 
+    insideBraces = openBraces && !closeBraces &&
                    line.find("{") == std::string::npos &&
                    line.find("}") == std::string::npos;
 
@@ -100,244 +101,244 @@ inputs::inputs(const std::string &inFile, const std::string &resDir,
       if (key == "fsiFiles") {
         auto options = ReadOptionsList(in, line);
         if (options.find("fsiFile") != options.end()) {
-	  femFsiFile_ = options["fsiFile"];
-	} else {
-	  cerr << "ERROR: fem fsiFile not specified" << endl;
+          femFsiFile_ = options["fsiFile"];
+        } else {
+          cerr << "ERROR: fem fsiFile not specified" << endl;
           exit(EXIT_FAILURE);
-	}
+        }
 
         if (options.find("massMatrix") != options.end()) {
-	  csdOpts_.Mfile = options["massMatrix"];
-	} else {
-	  cerr << "ERROR: fem massMatrix not specified" << endl;
+          csdOpts_.Mfile = options["massMatrix"];
+        } else {
+          cerr << "ERROR: fem massMatrix not specified" << endl;
           exit(EXIT_FAILURE);
-	}
+        }
 
         if (options.find("stiffnessMatrix") != options.end()) {
-	  csdOpts_.Kfile = options["stiffnessMatrix"];
-	} else {
-	  cerr << "ERROR: fem stiffnessMatrix not specified" << endl;
+          csdOpts_.Kfile = options["stiffnessMatrix"];
+        } else {
+          cerr << "ERROR: fem stiffnessMatrix not specified" << endl;
           exit(EXIT_FAILURE);
-	}
+        }
 
         if (options.find("dampingMatrix") != options.end()) {
-	  csdOpts_.Cfile = options["dampingMatrix"];
-	}
+          csdOpts_.Cfile = options["dampingMatrix"];
+        }
 
         if (options.find("dispOTM") != options.end()) {
-	  csdOpts_.DispOTMfile = options["dispOTM"];
-	} else {
-	  cerr << "ERROR: fem dispOTM not specified" << endl;
+          csdOpts_.DispOTMfile = options["dispOTM"];
+        } else {
+          cerr << "ERROR: fem dispOTM not specified" << endl;
           exit(EXIT_FAILURE);
-	}
+        }
 
         if (options.find("eforceOTM") != options.end()) {
-	  csdOpts_.EForceOTMfile = options["eforceOTM"];
-	}
+          csdOpts_.EForceOTMfile = options["eforceOTM"];
+        }
 
         if (options.find("stressOTM") != options.end()) {
-	  csdOpts_.StressOTMfile = options["stressOTM"];
-	}
+          csdOpts_.StressOTMfile = options["stressOTM"];
+        }
 
         if (options.find("ampFile") != options.end()) {
-	  csdOpts_.Ampfile = options["ampFile"];
-	}
+          csdOpts_.Ampfile = options["ampFile"];
+        }
 
         if (options.find("spcFile") != options.end()) {
-	  csdOpts_.SPCfile = options["spcFile"];
-	}
+          csdOpts_.SPCfile = options["spcFile"];
+        }
 
         if (options.find("icFile") != options.end()) {
-	  csdOpts_.ICfile = options["icFile"];
-	}
+          csdOpts_.ICfile = options["icFile"];
+        }
 
       } else if (key == "cfdFsiFile") {
-	cfdFsiFile_ = value;
+        cfdFsiFile_ = value;
       } else if (key == "fsiModalDamping") {
         auto options = ReadOptionsList(in, line);
         for (const auto &opts : options) {
-	  csdOpts_.modalDampingSchedule.push_back(
-            std::make_pair(std::stod(opts.first), std::stod(opts.second)));
-	}
+          csdOpts_.modalDampingSchedule.push_back(
+              std::make_pair(std::stod(opts.first), std::stod(opts.second)));
+        }
       } else if (key == "fsiRayleighDamping") {
         auto options = ReadOptionsList(in, line);
         auto specifyMScale = false;
         if (options.find("Mscale") != options.end() ||
             options.find("Kscale") != options.end()) {
-	  specifyMScale = true;
-	}
+          specifyMScale = true;
+        }
         auto calcMScale = false;
         if (options.find("freqA") != options.end() ||
             options.find("freqB") != options.end() ||
             options.find("dampA") != options.end() ||
             options.find("dampB") != options.end()) {
-	  calcMScale = true;
-	}
+          calcMScale = true;
+        }
         if (specifyMScale && calcMScale) {
-	  cerr << "ERROR: in 'fsiRayleighDamping' cannot specify 'Mscale' "
-	       << "or 'Kscale' with 'freqA', 'freqB', dampA', and 'dampB'"
-	       << endl;
-	  exit(EXIT_FAILURE);
-	} else if (!specifyMScale && !calcMScale) {
-	  cerr << "ERROR: in 'fsiRayleighDamping' must specify 'Mscale', "
+          cerr << "ERROR: in 'fsiRayleighDamping' cannot specify 'Mscale' "
+               << "or 'Kscale' with 'freqA', 'freqB', dampA', and 'dampB'"
+               << endl;
+          exit(EXIT_FAILURE);
+        } else if (!specifyMScale && !calcMScale) {
+          cerr << "ERROR: in 'fsiRayleighDamping' must specify 'Mscale', "
                << "'Kscale' or 'freqA', 'dampA', etc" << endl;
-	  exit(EXIT_FAILURE);
-	}
+          exit(EXIT_FAILURE);
+        }
 
         if (specifyMScale) {
           if (options.find("Mscale") != options.end()) {
-    	    csdOpts_.rayleighParams[0] = std::stod(options["Mscale"]);
-	  }
+            csdOpts_.rayleighParams[0] = std::stod(options["Mscale"]);
+          }
           if (options.find("Kscale") != options.end()) {
-    	    csdOpts_.rayleighParams[1] = std::stod(options["Kscale"]);
-	  }
-	}
+            csdOpts_.rayleighParams[1] = std::stod(options["Kscale"]);
+          }
+        }
 
         if (calcMScale) {
-	  auto freqA = 0.0;
+          auto freqA = 0.0;
           auto freqB = 0.0;
           auto dampA = 0.0;
           auto dampB = 0.0;
           if (options.find("freqA") != options.end()) {
-    	    freqA = std::stod(options["freqA"]);
-	  } else {
-	    cerr << "ERROR: in 'fsiRayleighDamping', must specify 'freqA'"
-  	         << endl;
+            freqA = std::stod(options["freqA"]);
+          } else {
+            cerr << "ERROR: in 'fsiRayleighDamping', must specify 'freqA'"
+                 << endl;
             exit(EXIT_FAILURE);
-	  }
+          }
           if (options.find("freqB") != options.end()) {
-    	    freqB = std::stod(options["freqB"]);
-	  } else {
-	    cerr << "ERROR: in 'fsiRayleighDamping', must specify 'freqB'"
-  	         << endl;
+            freqB = std::stod(options["freqB"]);
+          } else {
+            cerr << "ERROR: in 'fsiRayleighDamping', must specify 'freqB'"
+                 << endl;
             exit(EXIT_FAILURE);
-	  }
+          }
           if (options.find("dampA") != options.end()) {
-    	    dampA = std::stod(options["dampA"]);
-	  } else {
-	    cerr << "ERROR: in 'fsiRayleighDamping', must specify 'dampA'"
-  	         << endl;
+            dampA = std::stod(options["dampA"]);
+          } else {
+            cerr << "ERROR: in 'fsiRayleighDamping', must specify 'dampA'"
+                 << endl;
             exit(EXIT_FAILURE);
-	  }
+          }
           if (options.find("dampB") != options.end()) {
-    	    dampB = std::stod(options["dampB"]);
-	  } else {
-	    cerr << "ERROR: in 'fsiRayleighDamping', must specify 'dampB'"
-  	         << endl;
+            dampB = std::stod(options["dampB"]);
+          } else {
+            cerr << "ERROR: in 'fsiRayleighDamping', must specify 'dampB'"
+                 << endl;
             exit(EXIT_FAILURE);
-	  }
+          }
           auto a = freqA * 2.0 * M_PI;
           auto b = freqB * 2.0 * M_PI;
-          auto det = 1.0 / (b/a - a/b);
-	  csdOpts_.rayleighParams[0] = 2.0 * det * (b * dampA - a * dampB);
+          auto det = 1.0 / (b / a - a / b);
+          csdOpts_.rayleighParams[0] = 2.0 * det * (b * dampA - a * dampB);
           csdOpts_.rayleighParams[1] = 2.0 * det * (-dampA / b + dampB / a);
-	}
+        }
       } else if (key == "fsiIntegrationScheme") {
         if (value == "newmarkBeta") {
           csdOpts_.integrationType = fsi::INT_NEWMARK;
-	} else if (value == "hht") {
-	  csdOpts_.integrationType = fsi::INT_HHT;
-	} else if (value == "modal") {
-	  csdOpts_.integrationType = fsi::INT_MODAL;
-	} else if (value == "sol109") {
-	  csdOpts_.integrationType = fsi::INT_SOL109;
-	} else {
+        } else if (value == "hht") {
+          csdOpts_.integrationType = fsi::INT_HHT;
+        } else if (value == "modal") {
+          csdOpts_.integrationType = fsi::INT_MODAL;
+        } else if (value == "sol109") {
+          csdOpts_.integrationType = fsi::INT_SOL109;
+        } else {
           cerr << "ERROR: fsiIntegrationScheme '" << value
-	       << "' is not recognized" << endl;
+               << "' is not recognized" << endl;
           exit(EXIT_FAILURE);
-	}
+        }
       } else if (key == "fsiPrintEnergySum") {
-	printEnergySum_ = std::stoi(value);
+        printEnergySum_ = std::stoi(value);
       } else if (key == "fsiScatterMatricesUsingFile") {
-	csdOpts_.scatterMatricesUsingFile = std::stoi(value);
+        csdOpts_.scatterMatricesUsingFile = std::stoi(value);
       } else if (key == "fsiComputeResidual") {
-	csdOpts_.doResidCalc = std::stoi(value);
+        csdOpts_.doResidCalc = std::stoi(value);
       } else if (key == "fsiElementForceProbe") {
         auto options = ReadOptionsList(in, line);
         for (const auto &opt : options) {
-	  probes_.insert(std::make_pair(
-              opt.first, std::make_pair(std::stoi(opt.second), 
-                                        fsi::PROBE_EFORCE)));
-	}
+          probes_.insert(std::make_pair(
+              opt.first,
+              std::make_pair(std::stoi(opt.second), fsi::PROBE_EFORCE)));
+        }
       } else if (key == "fsiNodeProbe") {
         auto options = ReadOptionsList(in, line);
         for (const auto &opt : options) {
-	  probes_.insert(std::make_pair(
-              opt.first, std::make_pair(std::stoi(opt.second), 
-                                        fsi::PROBE_UVA)));
-	}
+          probes_.insert(std::make_pair(
+              opt.first,
+              std::make_pair(std::stoi(opt.second), fsi::PROBE_UVA)));
+        }
       } else if (key == "fsiOutputDir") {
-	outputDir_ = value;
+        outputDir_ = value;
       } else if (key == "fsiRestartDir") {
-	restartDir_ = value;
+        restartDir_ = value;
       } else if (key == "fsiProbeDir") {
-	probeDir_ = value;
+        probeDir_ = value;
       } else if (key == "fsiProbePrecision") {
-	csdOpts_.probePrecision = std::stoi(value);
+        csdOpts_.probePrecision = std::stoi(value);
       } else if (key == "fsiOutput") {
         auto lst = ReadList(in, line);
         if (lst.find("disp") != lst.end()) {
-	  csdOpts_.outputDisp = true;
-	}
+          csdOpts_.outputDisp = true;
+        }
         if (lst.find("vel") != lst.end()) {
-	  csdOpts_.outputVel = true;
-	}
+          csdOpts_.outputVel = true;
+        }
         if (lst.find("accel") != lst.end()) {
-	  csdOpts_.outputAccel = true;
-	}
+          csdOpts_.outputAccel = true;
+        }
         if (lst.find("stress") != lst.end()) {
-	  csdOpts_.outputStress = true;
-	}
+          csdOpts_.outputStress = true;
+        }
         if (lst.find("strain") != lst.end()) {
-	  csdOpts_.outputStrain = true;
-	}
+          csdOpts_.outputStrain = true;
+        }
         if (lst.find("eforce") != lst.end()) {
-	  csdOpts_.outputEForce = true;
-	}
+          csdOpts_.outputEForce = true;
+        }
         if (lst.find("FSIsurf") != lst.end()) {
-	  coupOpts_.outputCFDSurf = true;
+          coupOpts_.outputCFDSurf = true;
           coupOpts_.outputFEMSurf = true;
-	}
+        }
         if (lst.find("FSIsurf_proj") != lst.end()) {
-	  coupOpts_.outputCFDSurf_proj = true;
-	}
+          coupOpts_.outputCFDSurf_proj = true;
+        }
         if (lst.find("FSIproj_disp") != lst.end()) {
-	  coupOpts_.outputProjectionOP2 = true;
-	}
+          coupOpts_.outputProjectionOP2 = true;
+        }
         if (lst.find("FSIsurf_map") != lst.end()) {
-	  coupOpts_.outputCFDSurf_map = true;
+          coupOpts_.outputCFDSurf_map = true;
           coupOpts_.outputFEMSurf_map = true;
-	}
+        }
         if (lst.find("FSIforce") != lst.end()) {
-	  coupOpts_.map_data[0].doFEMOutput = true;
-	  coupOpts_.map_data[0].doCFDOutput = true;
-	}
+          coupOpts_.map_data[0].doFEMOutput = true;
+          coupOpts_.map_data[0].doCFDOutput = true;
+        }
       } else if (key == "dtmax") {
-	csdOpts_.timeStep = std::stod(value);
+        csdOpts_.timeStep = std::stod(value);
       } else if (key == "forceScaleFactor") {
-	forceScaleFactor_ = std::stod(value);
+        forceScaleFactor_ = std::stod(value);
       } else if (key == "lengthScaleFactor") {
-	lengthScaleFactor_ = std::stod(value);
+        lengthScaleFactor_ = std::stod(value);
       } else if (key == "probe_freq") {
-	probeFreq_ = std::stoi(value);
+        probeFreq_ = std::stoi(value);
       } else if (key == "plot_freq") {
-	plotFreq_ = std::stoi(value);
+        plotFreq_ = std::stoi(value);
       } else if (key == "plot_modulo") {
-	plotModulo_ = std::stoi(value);
+        plotModulo_ = std::stoi(value);
       } else if (key == "restart_freq") {
-	restartFreq_ = std::stoi(value);
+        restartFreq_ = std::stoi(value);
       } else if (key == "restart_modulo") {
-	restartModulo_ = std::stoi(value);
+        restartModulo_ = std::stoi(value);
       } else if (key == "cfdStartIter") {
         if (!this->IsRestart()) {
-  	  startIterCFD_ = std::stoi(value);
-	}
+          startIterCFD_ = std::stoi(value);
+        }
       } else if (key == "cfdEndIter") {
-	endIterCFD_ = std::stoi(value);
+        endIterCFD_ = std::stoi(value);
       } else if (key == "cfdIncrement") {
-	incrementCFD_ = std::stoi(value);
+        incrementCFD_ = std::stoi(value);
       } else if (key == "fsiDebugLevel") {
-	debugLevel_ = std::stoi(value);
+        debugLevel_ = std::stoi(value);
       } else if (key == "fsiDenseMatrixFillFactor") {
         denseMatrixFillFactor_ = std::stod(value);
         setDenseMatrixFillFactor(denseMatrixFillFactor_);
@@ -368,18 +369,18 @@ inputs::inputs(const std::string &inFile, const std::string &resDir,
       } else if (key == "fsiFixInconsistentFEMNormals") {
         coupOpts_.map_options.autoFixInconsistentNormals = std::stoi(value);
       } else if (key == "solverPackage") {
-        if (value != "mumps" && value != "pastix" &&
-            value != "superlu" && value != "lu") {
-	  cerr << "ERROR: solverPackage '" << value 
-               << "' is not recognized." << endl;
+        if (value != "mumps" && value != "pastix" && value != "superlu" &&
+            value != "lu") {
+          cerr << "ERROR: solverPackage '" << value << "' is not recognized."
+               << endl;
           cerr << "Choose 'mumps', 'pastix', 'superlu', or 'lu'" << endl;
           exit(EXIT_FAILURE);
-	}
-	csdOpts_.solverPackage = value;
+        }
+        csdOpts_.solverPackage = value;
       } else {
-	cerr << "ERROR: input variable '" << key << "' is not recognized"
+        cerr << "ERROR: input variable '" << key << "' is not recognized"
              << endl;
-	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
       }
     }
   }
@@ -432,24 +433,34 @@ void inputs::EchoInputs() const {
     cout << "forceScaleFactor: " << forceScaleFactor_ << endl;
     cout << "lengthScaleFactor: " << lengthScaleFactor_ << endl;
     cout << "forceScaleFactor: " << forceScaleFactor_ << endl;
-    cout << "fsiScatterMatricesUsingFile: " << csdOpts_.scatterMatricesUsingFile << endl;
-    cout << "fsiOutputMatlabMatrices: " << csdOpts_.outputMatlabMatrices << endl;
+    cout << "fsiScatterMatricesUsingFile: " << csdOpts_.scatterMatricesUsingFile
+         << endl;
+    cout << "fsiOutputMatlabMatrices: " << csdOpts_.outputMatlabMatrices
+         << endl;
     cout << "fsiDenseMatrixFillFactor: " << denseMatrixFillFactor_ << endl;
     cout << "fsiStaticInit: " << csdOpts_.doStaticInit << endl;
     cout << "fsiRestartHDF5: " << csdOpts_.outputHDF5files << endl;
     cout << "fsiIgnoreBoundsCheck: " << coupOpts_.ignoreBoundsCheck << endl;
     cout << "fsiBoundsCheckEpsilon: " << coupOpts_.boundsCheckEpsilon << endl;
-    cout << "fsiBoundsCheckTolerance: " << coupOpts_.boundsCheckTolerance << endl;
-    cout << "fsiProjectUnmappedNodes: " << coupOpts_.map_options.projectNearNodeFlag << endl;
-    cout << "fsiUsePolyShapeFunctions: " << coupOpts_.map_options.usePolyShapeFunctions << endl;
-    cout << "fsiProjectPolyEdges: " << coupOpts_.map_options.projectPolyEdges << endl;
-    cout << "fsiPolyEdgeProjectThreshold: " << coupOpts_.map_options.polyEdgeProjectThreshold << endl;
-    cout << "fsiPolyShapeFunctionExponent: " << coupOpts_.map_options.IDWShapeFunctionExponent << endl;
-    cout << "fsiMapVisibleFaceDeltaAngle: " << coupOpts_.map_options.visibleFaceDeltaAngle << " degrees" << endl;
-    cout << "fsiFixInconsistentFEMNormals: " << coupOpts_.map_options.autoFixInconsistentNormals << endl;
+    cout << "fsiBoundsCheckTolerance: " << coupOpts_.boundsCheckTolerance
+         << endl;
+    cout << "fsiProjectUnmappedNodes: "
+         << coupOpts_.map_options.projectNearNodeFlag << endl;
+    cout << "fsiUsePolyShapeFunctions: "
+         << coupOpts_.map_options.usePolyShapeFunctions << endl;
+    cout << "fsiProjectPolyEdges: " << coupOpts_.map_options.projectPolyEdges
+         << endl;
+    cout << "fsiPolyEdgeProjectThreshold: "
+         << coupOpts_.map_options.polyEdgeProjectThreshold << endl;
+    cout << "fsiPolyShapeFunctionExponent: "
+         << coupOpts_.map_options.IDWShapeFunctionExponent << endl;
+    cout << "fsiMapVisibleFaceDeltaAngle: "
+         << coupOpts_.map_options.visibleFaceDeltaAngle << " degrees" << endl;
+    cout << "fsiFixInconsistentFEMNormals: "
+         << coupOpts_.map_options.autoFixInconsistentNormals << endl;
     cout << "probes: <" << endl;
     for (const auto &p : probes_) {
-      cout << "name=" << p.first << ", id=" << p.second.first 
+      cout << "name=" << p.first << ", id=" << p.second.first
            << ", type=" << p.second.second << endl;
     }
     cout << endl;
@@ -484,7 +495,7 @@ std::string Trim(const std::string &s, const std::string &whitespace) {
   }
 }
 
-std::vector<std::string> Tokenize(std::string line, 
+std::vector<std::string> Tokenize(std::string line,
                                   const std::string &delimiter,
                                   const unsigned int maxSplits) {
   std::vector<std::string> tokens;
@@ -492,7 +503,9 @@ std::vector<std::string> Tokenize(std::string line,
   auto pos = line.find(delimiter);
   while (pos != std::string::npos && !reachedMax) {
     auto token = Trim(line.substr(0, pos));
-    if (!token.empty()) {tokens.push_back(token);}
+    if (!token.empty()) {
+      tokens.push_back(token);
+    }
     // treat consecutive delimiters as single delimiter
     auto end = line.find_first_not_of(delimiter, pos);
     line.erase(0, end);
@@ -503,12 +516,14 @@ std::vector<std::string> Tokenize(std::string line,
   }
   // add in remainder if not empty
   auto token = Trim(line);
-  if (!token.empty()) {tokens.push_back(token);}
+  if (!token.empty()) {
+    tokens.push_back(token);
+  }
   return tokens;
 }
 
 // function to remove delimiter if it is last character
-std::string RemoveTrailing(const std::string &str, 
+std::string RemoveTrailing(const std::string &str,
                            const std::string &delimiter) {
   auto pos = str.rfind(delimiter);
   return (pos == str.length() - 1) ? str.substr(0, pos) : str;
@@ -532,11 +547,11 @@ std::map<std::string, std::string> ReadOptionsList(std::ifstream &inFile,
     if (listOpened && openList) {  // list opened on current line, stays open
       list = str.substr(start + 1, std::string::npos);
     } else if (listOpened && !openList) {  // list opened/closed on current line
-      const auto range = end - start -1;
+      const auto range = end - start - 1;
       list = str.substr(start + 1, range);  // +/- 1 to ignore <>
-    } else if (!listOpened && openList) {  // list was open and remains open
+    } else if (!listOpened && openList) {   // list was open and remains open
       list = str.substr(start, std::string::npos);
-    } else { // list was open and is now closed
+    } else {  // list was open and is now closed
       const auto range = end - start;
       list = str.substr(start, range);
     }
@@ -547,8 +562,8 @@ std::map<std::string, std::string> ReadOptionsList(std::ifstream &inFile,
     for (const auto &token : tokens) {
       const auto opt = Tokenize(token, "=");
       if (opt.size() != 2) {
-	cerr << "ERROR: Problem reading options list on line '" << str 
-             << "'. Key and value should be on same line, separated by '='" 
+        cerr << "ERROR: Problem reading options list on line '" << str
+             << "'. Key and value should be on same line, separated by '='"
              << endl;
         exit(EXIT_FAILURE);
       }
@@ -563,8 +578,7 @@ std::map<std::string, std::string> ReadOptionsList(std::ifstream &inFile,
   return options;
 }
 
-std::set<std::string> ReadList(std::ifstream &inFile,
-                               std::string &str) {
+std::set<std::string> ReadList(std::ifstream &inFile, std::string &str) {
   std::set<std::string> options;
   auto openList = false;
   do {
@@ -578,11 +592,11 @@ std::set<std::string> ReadList(std::ifstream &inFile,
     if (listOpened && openList) {  // list opened on current line, stays open
       list = str.substr(start + 1, std::string::npos);
     } else if (listOpened && !openList) {  // list opened/closed on current line
-      const auto range = end - start -1;
+      const auto range = end - start - 1;
       list = str.substr(start + 1, range);  // +/- 1 to ignore <>
-    } else if (!listOpened && openList) {  // list was open and remains open
+    } else if (!listOpened && openList) {   // list was open and remains open
       list = str.substr(start, std::string::npos);
-    } else { // list was open and is now closed
+    } else {  // list was open and is now closed
       const auto range = end - start;
       list = str.substr(start, range);
     }
@@ -606,8 +620,8 @@ std::string inputs::CfdRootName() const {
   // find index of first comment
   auto idx = cfdFsiFile_.find(".");
   if (idx == std::string::npos) {
-    cerr << "ERROR: cannot find root for file name '"
-	 << cfdFsiFile_ << "'" << endl;
+    cerr << "ERROR: cannot find root for file name '" << cfdFsiFile_ << "'"
+         << endl;
     exit(EXIT_FAILURE);
   }
   return cfdFsiFile_.substr(0, idx);
@@ -617,8 +631,8 @@ std::string inputs::FemRootName() const {
   // find index of first comment
   auto idx = femFsiFile_.find(".");
   if (idx == std::string::npos) {
-    cerr << "ERROR: cannot find root for file name '"
-	 << femFsiFile_ << "'" << endl;
+    cerr << "ERROR: cannot find root for file name '" << femFsiFile_ << "'"
+         << endl;
     exit(EXIT_FAILURE);
   }
   return femFsiFile_.substr(0, idx);
@@ -628,7 +642,7 @@ void inputs::ReadTimeRestartFile(const std::string &fpath) {
   std::ifstream tf(fpath, std::ios::in);
   if (tf.fail()) {
     cerr << "ERROR: Error in inputs::ReadTimeRestartFile()." << endl;
-    cerr << "Time restart file '" << fpath << "' did not open correctly!" 
+    cerr << "Time restart file '" << fpath << "' did not open correctly!"
          << endl;
     exit(EXIT_FAILURE);
   }
@@ -639,18 +653,20 @@ void inputs::ReadTimeRestartFile(const std::string &fpath) {
   tf.close();
 }
 
-void inputs::WriteTimeRestartFile(const int &csdIter, const int &cfdIter) const {
+void inputs::WriteTimeRestartFile(const int &csdIter,
+                                  const int &cfdIter) const {
   const auto fpath = this->RestartModDir(csdIter) + "/linearFSItime_restart";
   std::ofstream tf(fpath, std::ios::out);
   if (tf.fail()) {
     cerr << "ERROR: Error in inputs::WriteTimeRestartFile()." << endl;
-    cerr << "Time restart file '" << fpath << "' did not open correctly!" 
+    cerr << "Time restart file '" << fpath << "' did not open correctly!"
          << endl;
     exit(EXIT_FAILURE);
   }
 
   tf << cfdIter << " ";
   tf << csdIter << " ";
-  tf << std::scientific << std::setprecision(8) << this->SimulationTime(csdIter);
+  tf << std::scientific << std::setprecision(8)
+     << this->SimulationTime(csdIter);
   tf.close();
 }

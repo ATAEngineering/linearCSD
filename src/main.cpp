@@ -1,47 +1,46 @@
 // Copyright (C) 2020, ATA Engineering, Inc.
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
 // License as published by the Free Software Foundation; either
 // version 3 of the License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 // Lesser General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-#include <string>
 #include <iostream>
 #include <memory>
-#include <vector>
 #include <numeric>
 #include <stdexcept>
+#include <string>
+#include <vector>
 #include "linearCSD.h"
 #include "mappedCoupling.h"
-#include "wetted_surface.h"
 #include "mpi.h"
 #include "petsc.h"
+#include "wetted_surface.h"
 
 #include "tcout.h"
 
+#include "inputs.hpp"
 #include "macros.hpp"
 #include "utility.hpp"
-#include "inputs.hpp"
 
-using std::cout;
 using std::cerr;
+using std::cout;
 using std::endl;
-
 
 void OutputData(const inputs &inp, const std::unique_ptr<fsi::linearCSD> &csd,
                 const std::unique_ptr<fsi::mappedCoupling> &cosim,
                 const int &rank, const int &csdIter, const int &cfdIter);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   // initialize MPI
   MPI_Init(&argc, &argv);
   PetscInitializeNoArguments();
@@ -100,7 +99,8 @@ int main(int argc, char** argv) {
     if (rank == 0) {
       cout << "MSG: Initializing CSD solver..." << endl;
     }
-    auto csd = std::make_unique<fsi::linearCSD>(MPI_COMM_WORLD, inp.CsdOptions());
+    auto csd =
+        std::make_unique<fsi::linearCSD>(MPI_COMM_WORLD, inp.CsdOptions());
     // add probes
     if (rank == 0) {
       cout << "MSG: Adding probes to CSD solver..." << endl;
@@ -141,21 +141,26 @@ int main(int argc, char** argv) {
     if (rank == 0) {
       cout << "MSG: Creating mapped coupling interface..." << endl;
     }
-    auto cosim = std::make_unique<fsi::mappedCoupling>(MPI_COMM_WORLD, MPI_COMM_WORLD, 
-                                                       femSurf, cfdSurf, 
-                                                       inp.CouplingOptions());
-    csd->addCoupledNodeSet_rank0("EXT_WSURF", femSurf.inode_ids, fsi::FORCE_COUP);
+    auto cosim = std::make_unique<fsi::mappedCoupling>(
+        MPI_COMM_WORLD, MPI_COMM_WORLD, femSurf, cfdSurf,
+        inp.CouplingOptions());
+    csd->addCoupledNodeSet_rank0("EXT_WSURF", femSurf.inode_ids,
+                                 fsi::FORCE_COUP);
 
     csd->doSetup();
 
     // load restart data
     if (inp.IsRestart()) {
       if (rank == 0) {
-	cout << "MSG: This simulation is a restart, loading restart files..." << endl;
+        cout << "MSG: This simulation is a restart, loading restart files..."
+             << endl;
       }
-      csd->loadIntegratorRestartFile(inp.ReadRestartDirPath() + "linearFSI_restart");
-      csd->loadWorkRestartFile(inp.ReadRestartDirPath() + "linearFSIwork_restart");
-      cosim->loadCouplingRestartFile(inp.ReadRestartDirPath() + "linearFSIcoupling_restart");
+      csd->loadIntegratorRestartFile(inp.ReadRestartDirPath() +
+                                     "linearFSI_restart");
+      csd->loadWorkRestartFile(inp.ReadRestartDirPath() +
+                               "linearFSIwork_restart");
+      cosim->loadCouplingRestartFile(inp.ReadRestartDirPath() +
+                                     "linearFSIcoupling_restart");
     }
 
     csd->doFactor();
@@ -165,12 +170,14 @@ int main(int argc, char** argv) {
     cosim->outputSurfaceFiles(inp.OutputDir());
 
     // solve fem at all times
-    for (auto ii = inp.StartIterCFD(); ii <= inp.EndIterCFD(); ii += inp.IncCFD()) {
+    for (auto ii = inp.StartIterCFD(); ii <= inp.EndIterCFD();
+         ii += inp.IncCFD()) {
       auto csdIter = ii / inp.IncCFD();
       if (rank == 0) {
         cout << "MSG: Solving FEM at increment " << csdIter << "..." << endl;
-        cout << "MSG: Do plot: " << inp.DoPlot(csdIter) << "; Do restart: " 
-             << inp.DoRestart(csdIter) << "; Do probe: " << inp.DoProbe(csdIter) << endl;
+        cout << "MSG: Do plot: " << inp.DoPlot(csdIter)
+             << "; Do restart: " << inp.DoRestart(csdIter)
+             << "; Do probe: " << inp.DoProbe(csdIter) << endl;
       }
 
       // subiteration loop
@@ -180,15 +187,16 @@ int main(int argc, char** argv) {
           GetForceData(ii, inp.CfdRootName(), inp.ForceScale(), cfdSurf);
         }
         cosim->setCFDvector_cfdComm(cfdSurf.force, "WS_FORCE");
-        csd->setCoupledDOFForce_petscVec("EXT_WSURF", cosim->getFEMvector_petscVec("WS_FORCE"));
+        csd->setCoupledDOFForce_petscVec(
+            "EXT_WSURF", cosim->getFEMvector_petscVec("WS_FORCE"));
         // solve FEM at current step
         csd->doPredict();
-  
-        // cosim->setFEMvector_petscVec(csd->getCoupledDOFDisp_petscVec("EXT_WSURF"), "WS_DISP");
-        // cfdSurf.disp = cosim->getFEMvector_petscVec("WS_DISP");
+
+        // cosim->setFEMvector_petscVec(csd->getCoupledDOFDisp_petscVec("EXT_WSURF"),
+        // "WS_DISP"); cfdSurf.disp = cosim->getFEMvector_petscVec("WS_DISP");
         // output wetted force sums
         cosim->printMapSum_rank0(std::cout, "WS_FORCE", ii, jj);
-        //cosim->outputNewtonFiles(inp.OutputDir(), ii, jj);
+        // cosim->outputNewtonFiles(inp.OutputDir(), ii, jj);
       }
 
       // advance FEM to next time step
@@ -203,7 +211,7 @@ int main(int argc, char** argv) {
     if (rank == 0) {
       cout << "MSG: Program Complete" << endl;
     }
-  
+
   } catch (std::runtime_error &err) {
     cout << "Error running standalone linearFSI: " << err.what() << endl;
     exit(EXIT_FAILURE);
@@ -213,7 +221,6 @@ int main(int argc, char** argv) {
   MPI_Finalize();
   return EXIT_SUCCESS;
 }
-
 
 void OutputData(const inputs &inp, const std::unique_ptr<fsi::linearCSD> &csd,
                 const std::unique_ptr<fsi::mappedCoupling> &cosim,
@@ -230,7 +237,8 @@ void OutputData(const inputs &inp, const std::unique_ptr<fsi::linearCSD> &csd,
     if (rank == 0) {
       cout << "MSG: cosim->outputPlotFiles()" << endl;
     }
-    cosim->outputPlotFiles(inp.OutputDir(), csdIter, inp.SimulationTime(csdIter));
+    cosim->outputPlotFiles(inp.OutputDir(), csdIter,
+                           inp.SimulationTime(csdIter));
   }
   if (inp.DoProbe(csdIter)) {
     csd->outputProbeFiles(inp.ProbeDir());
@@ -256,6 +264,7 @@ void OutputData(const inputs &inp, const std::unique_ptr<fsi::linearCSD> &csd,
   if (inp.DoRestart(csdIter)) {
     inp.WriteTimeRestartFile(csdIter, cfdIter);
     csd->outputIntegratorRestartFile(restartModDir + "/linearFSI_restart");
-    cosim->outputCouplingRestartFile(restartModDir + "/linearFSIcoupling_restart");
+    cosim->outputCouplingRestartFile(restartModDir +
+                                     "/linearFSIcoupling_restart");
   }
 }
